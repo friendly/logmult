@@ -1,3 +1,6 @@
+# Avoid random failures to converge
+set.seed(1)
+
 # See Becker-Clogg (1989) test
 
 library(logmult)
@@ -7,14 +10,251 @@ rcm <- rc(color[,,1], 2, weighting="marginal", start=NA)
 rcu <- rc(color[,,1], 2, weighting="uniform", start=NA)
 rcn <- rc(color[,,1], 2, weighting="none", start=NA)
 
-phim <- maor(fitted(rcm), TRUE, "marginal", norm=2)
-phiu <- maor(fitted(rcu), TRUE, "uniform", norm=2)
-phin <- maor(fitted(rcn), TRUE, "none", norm=2)
+stopifnot(all.equal(fitted(rcm), fitted(rcu)))
+stopifnot(all.equal(fitted(rcm), fitted(rcn)))
+
+phim <- maor(fitted(rcm), TRUE, weighting="marginal", norm=2)
+phiu <- maor(fitted(rcu), TRUE, weighting="uniform", norm=2)
+phin <- maor(fitted(rcn), TRUE, weighting="none", norm=2)
+
+cphim <- maor(fitted(rcm), TRUE, TRUE, weighting="marginal", norm=2)
+cphiu <- maor(fitted(rcm), TRUE, TRUE, weighting="uniform", norm=2)
+cphin <- maor(fitted(rcm), TRUE, TRUE, weighting="none", norm=2)
+
+maorm <- maor(fitted(rcm), weighting="marginal", norm=2)
+maoru <- maor(fitted(rcu), weighting="uniform", norm=2)
+maorn <- maor(fitted(rcn), weighting="none", norm=2)
+
+cmaorm <- maor(fitted(rcm), cell=TRUE, weighting="marginal", norm=2)
+cmaoru <- maor(fitted(rcu), cell=TRUE, weighting="uniform", norm=2)
+cmaorn <- maor(fitted(rcn), cell=TRUE, weighting="none", norm=2)
 
 stopifnot(all.equal(phim, sqrt(sum((rcm$assoc$phi)^2))))
 stopifnot(all.equal(phiu, sqrt(sum(abs(rcu$assoc$phi)^2))))
 stopifnot(all.equal(phin, sqrt(sum(abs(rcn$assoc$phi)^2))))
 
+stopifnot(all.equal(phim, sqrt(sum(cphim))))
+stopifnot(all.equal(phiu, sqrt(sum(cphiu))))
+stopifnot(all.equal(phin, sqrt(sum(cphin))))
+
+stopifnot(all.equal(maorm, exp(sqrt(sum(cmaorm)))))
+stopifnot(all.equal(maoru, exp(sqrt(sum(cmaoru)))))
+stopifnot(all.equal(maorn, exp(sqrt(sum(cmaorn)))))
+
+
+# Test on perfectly symmetric association
+data(ocg1973)
+
+rcm <- rc(ocg1973, 2, symmetric=TRUE, weighting="marginal", start=NA)
+rcu <- rc(ocg1973, 2, symmetric=TRUE, weighting="uniform", start=NA)
+rcn <- rc(ocg1973, 2, symmetric=TRUE, weighting="none", start=NA)
+
+stopifnot(all.equal(fitted(rcm), fitted(rcu)))
+stopifnot(all.equal(fitted(rcm), fitted(rcn)))
+
+w <- (rcm$assoc$row.weights + rcm$assoc$col.weights)[,1]/2
+phim <- maor(fitted(rcm), TRUE, weighting="marginal", norm=2, row.weights=w, col.weights=w)
+phiu <- maor(fitted(rcu), TRUE, weighting="uniform", norm=2)
+phin <- maor(fitted(rcn), TRUE, weighting="none", norm=2)
+
+sphim <- maor(fitted(rcm), TRUE, component="symmetric", weighting="marginal", norm=2,
+              row.weights=w, col.weights=w)
+sphiu <- maor(fitted(rcu), TRUE, component="symmetric", weighting="uniform", norm=2)
+sphin <- maor(fitted(rcn), TRUE, component="symmetric", weighting="none", norm=2)
+
+aphim <- maor(fitted(rcm), TRUE, component="antisymmetric", weighting="marginal", norm=2,
+              row.weights=w, col.weights=w)
+aphiu <- maor(fitted(rcu), TRUE, component="antisymmetric", weighting="uniform", norm=2)
+aphin <- maor(fitted(rcn), TRUE, component="antisymmetric", weighting="none", norm=2)
+
+cphim <- maor(fitted(rcm), TRUE, TRUE, weighting="marginal", norm=2,
+              row.weights=w, col.weights=w)
+cphiu <- maor(fitted(rcu), TRUE, TRUE, weighting="uniform", norm=2)
+cphin <- maor(fitted(rcn), TRUE, TRUE, weighting="none", norm=2)
+
+maorm <- maor(fitted(rcm), weighting="marginal", norm=2,
+              row.weights=w, col.weights=w)
+maoru <- maor(fitted(rcu), weighting="uniform", norm=2)
+maorn <- maor(fitted(rcn), weighting="none", norm=2)
+
+smaorm <- maor(fitted(rcm), component="symmetric", weighting="marginal", norm=2,
+               row.weights=w, col.weights=w)
+smaoru <- maor(fitted(rcu), component="symmetric", weighting="uniform", norm=2)
+smaorn <- maor(fitted(rcn), component="symmetric", weighting="none", norm=2)
+
+amaorm <- maor(fitted(rcm), component="antisymmetric", weighting="marginal", norm=2,
+               row.weights=w, col.weights=w)
+amaoru <- maor(fitted(rcu), component="antisymmetric", weighting="uniform", norm=2)
+amaorn <- maor(fitted(rcn), component="antisymmetric", weighting="none", norm=2)
+
+cmaorm <- maor(fitted(rcm), cell=TRUE, weighting="marginal", norm=2,
+               row.weights=w, col.weights=w)
+cmaoru <- maor(fitted(rcu), cell=TRUE, weighting="uniform", norm=2)
+cmaorn <- maor(fitted(rcn), cell=TRUE, weighting="none", norm=2)
+
+stopifnot(all.equal(phim, sphim))
+stopifnot(all.equal(phiu, sphiu))
+stopifnot(all.equal(phin, sphin))
+stopifnot(all.equal(phim, sqrt(sum((rcm$assoc$phi)^2))))
+stopifnot(all.equal(phiu, sqrt(sum(abs(rcu$assoc$phi)^2))))
+stopifnot(all.equal(phin, sqrt(sum(abs(rcn$assoc$phi)^2))))
+
+stopifnot(all(c(aphim, aphiu, aphin) < 1e-10))
+
+stopifnot(all.equal(phim, sqrt(sum(cphim))))
+stopifnot(all.equal(phiu, sqrt(sum(cphiu))))
+stopifnot(all.equal(phin, sqrt(sum(cphin))))
+
+stopifnot(all(c(amaorm, amaoru, amaorn) - 1 < 1e-10))
+
+stopifnot(all.equal(maorm, exp(sqrt(sum(cmaorm)))))
+stopifnot(all.equal(maoru, exp(sqrt(sum(cmaoru)))))
+stopifnot(all.equal(maorn, exp(sqrt(sum(cmaorn)))))
+
+stopifnot(all.equal(maorm, smaorm))
+stopifnot(all.equal(maoru, smaoru))
+stopifnot(all.equal(maorn, smaorn))
+
+# Test on perfectly anti-symmetric association
+hmm <- hmskew(ocg1973, nd.symm=0, weighting="marginal", start=NA)
+hmu <- hmskew(ocg1973, nd.symm=0, weighting="uniform", start=NA)
+hmn <- hmskew(ocg1973, nd.symm=0, weighting="none", start=NA)
+
+stopifnot(all.equal(fitted(hmm), fitted(hmu)))
+stopifnot(all.equal(fitted(hmm), fitted(hmn)))
+
+w <- (hmm$assoc$row.weights + hmm$assoc$col.weights)[,1]/2
+phim <- maor(fitted(hmm), TRUE, weighting="marginal", norm=2, row.weights=w, col.weights=w)
+phiu <- maor(fitted(hmu), TRUE, weighting="uniform", norm=2)
+phin <- maor(fitted(hmn), TRUE, weighting="none", norm=2)
+
+sphim <- maor(fitted(hmm), TRUE, component="symmetric", weighting="marginal", norm=2,
+              row.weights=w, col.weights=w)
+sphiu <- maor(fitted(hmu), TRUE, component="symmetric", weighting="uniform", norm=2)
+sphin <- maor(fitted(hmn), TRUE, component="symmetric", weighting="none", norm=2)
+
+aphim <- maor(fitted(hmm), TRUE, component="antisymmetric", weighting="marginal", norm=2,
+              row.weights=w, col.weights=w)
+aphiu <- maor(fitted(hmu), TRUE, component="antisymmetric", weighting="uniform", norm=2)
+aphin <- maor(fitted(hmn), TRUE, component="antisymmetric", weighting="none", norm=2)
+
+cphim <- maor(fitted(hmm), TRUE, TRUE, weighting="marginal", norm=2,
+              row.weights=w, col.weights=w)
+cphiu <- maor(fitted(hmu), TRUE, TRUE, weighting="uniform", norm=2)
+cphin <- maor(fitted(hmn), TRUE, TRUE, weighting="none", norm=2)
+
+maorm <- maor(fitted(hmm), weighting="marginal", norm=2,
+              row.weights=w, col.weights=w)
+maoru <- maor(fitted(hmu), weighting="uniform", norm=2)
+maorn <- maor(fitted(hmn), weighting="none", norm=2)
+
+smaorm <- maor(fitted(hmm), component="symmetric", weighting="marginal", norm=2,
+               row.weights=w, col.weights=w)
+smaoru <- maor(fitted(hmu), component="symmetric", weighting="uniform", norm=2)
+smaorn <- maor(fitted(hmn), component="symmetric", weighting="none", norm=2)
+
+amaorm <- maor(fitted(hmm), component="antisymmetric", weighting="marginal", norm=2,
+               row.weights=w, col.weights=w)
+amaoru <- maor(fitted(hmu), component="antisymmetric", weighting="uniform", norm=2)
+amaorn <- maor(fitted(hmn), component="antisymmetric", weighting="none", norm=2)
+
+cmaorm <- maor(fitted(hmm), cell=TRUE, weighting="marginal", norm=2,
+               row.weights=w, col.weights=w)
+cmaoru <- maor(fitted(hmu), cell=TRUE, weighting="uniform", norm=2)
+cmaorn <- maor(fitted(hmn), cell=TRUE, weighting="none", norm=2)
+
+stopifnot(all.equal(phim, aphim))
+stopifnot(all.equal(phiu, aphiu))
+stopifnot(all.equal(phin, aphin))
+stopifnot(all.equal(phim, sqrt(sum((hmm$assoc$phi)^2))))
+stopifnot(all.equal(phiu, sqrt(sum(abs(hmu$assoc$phi)^2))))
+stopifnot(all.equal(phin, sqrt(sum(abs(hmn$assoc$phi)^2))))
+
+stopifnot(all(c(sphim, sphiu, sphin) < 1e-10))
+
+stopifnot(all.equal(phim, sqrt(sum(cphim))))
+stopifnot(all.equal(phiu, sqrt(sum(cphiu))))
+stopifnot(all.equal(phin, sqrt(sum(cphin))))
+
+stopifnot(all(c(smaorm, smaoru, smaorn) - 1 < 1e-10))
+
+stopifnot(all.equal(maorm, exp(sqrt(sum(cmaorm)))))
+stopifnot(all.equal(maoru, exp(sqrt(sum(cmaoru)))))
+stopifnot(all.equal(maorn, exp(sqrt(sum(cmaorn)))))
+
+stopifnot(all.equal(maorm, amaorm))
+stopifnot(all.equal(maoru, amaoru))
+stopifnot(all.equal(maorn, amaorn))
+
+# Test on symmetric and anti-symmetric association
+# Without starting values, model too often converges to wrong solution
+start <- c(6.540,  0.106,  0.407, 0.666, 1.006, -0.581, -0.261, 0.060,
+          -4.411, -0.567, -0.310, 0.264, 0.652, -1.794, -1.610, -1.627,
+          -0.743, -0.012,  6.311, 0.295, 0.198, -0.015, -0.167, 0.010)
+hmm <- hmskew(ocg1973, nd.symm=1, weighting="marginal", start=start)
+hmu <- hmskew(ocg1973, nd.symm=1, weighting="uniform", start=start)
+hmn <- hmskew(ocg1973, nd.symm=1, weighting="none", start=start)
+
+stopifnot(all.equal(fitted(hmm), fitted(hmu)))
+stopifnot(all.equal(fitted(hmm), fitted(hmn)))
+
+w <- (hmm$assoc$row.weights + hmm$assoc$col.weights)[,1]/2
+phim <- maor(fitted(hmm), TRUE, weighting="marginal", norm=2, row.weights=w, col.weights=w)
+phiu <- maor(fitted(hmu), TRUE, weighting="uniform", norm=2)
+phin <- maor(fitted(hmn), TRUE, weighting="none", norm=2)
+
+sphim <- maor(fitted(hmm), TRUE, component="symmetric", weighting="marginal", norm=2,
+              row.weights=w, col.weights=w)
+sphiu <- maor(fitted(hmu), TRUE, component="symmetric", weighting="uniform", norm=2)
+sphin <- maor(fitted(hmn), TRUE, component="symmetric", weighting="none", norm=2)
+
+aphim <- maor(fitted(hmm), TRUE, component="antisymmetric", weighting="marginal", norm=2,
+              row.weights=w, col.weights=w)
+aphiu <- maor(fitted(hmu), TRUE, component="antisymmetric", weighting="uniform", norm=2)
+aphin <- maor(fitted(hmn), TRUE, component="antisymmetric", weighting="none", norm=2)
+
+cphim <- maor(fitted(hmm), TRUE, TRUE, weighting="marginal", norm=2,
+              row.weights=w, col.weights=w)
+cphiu <- maor(fitted(hmu), TRUE, TRUE, weighting="uniform", norm=2)
+cphin <- maor(fitted(hmn), TRUE, TRUE, weighting="none", norm=2)
+
+maorm <- maor(fitted(hmm), weighting="marginal", norm=2,
+              row.weights=w, col.weights=w)
+maoru <- maor(fitted(hmu), weighting="uniform", norm=2)
+maorn <- maor(fitted(hmn), weighting="none", norm=2)
+
+smaorm <- maor(fitted(hmm), component="symmetric", weighting="marginal", norm=2,
+               row.weights=w, col.weights=w)
+smaoru <- maor(fitted(hmu), component="symmetric", weighting="uniform", norm=2)
+smaorn <- maor(fitted(hmn), component="symmetric", weighting="none", norm=2)
+
+amaorm <- maor(fitted(hmm), component="antisymmetric", weighting="marginal", norm=2,
+               row.weights=w, col.weights=w)
+amaoru <- maor(fitted(hmu), component="antisymmetric", weighting="uniform", norm=2)
+amaorn <- maor(fitted(hmn), component="antisymmetric", weighting="none", norm=2)
+
+cmaorm <- maor(fitted(hmm), cell=TRUE, weighting="marginal", norm=2,
+               row.weights=w, col.weights=w)
+cmaoru <- maor(fitted(hmu), cell=TRUE, weighting="uniform", norm=2)
+cmaorn <- maor(fitted(hmn), cell=TRUE, weighting="none", norm=2)
+
+stopifnot(all.equal(phim, sqrt(sphim^2 + aphim^2)))
+stopifnot(all.equal(phiu, sqrt(sphiu^2 + aphiu^2)))
+stopifnot(all.equal(phin, sqrt(sphin^2 + aphin^2)))
+stopifnot(all.equal(sphim, sqrt(sum((hmm$assoc$phi)^2))))
+stopifnot(all.equal(sphiu, sqrt(sum(abs(hmu$assoc$phi)^2))))
+stopifnot(all.equal(sphin, sqrt(sum(abs(hmn$assoc$phi)^2))))
+stopifnot(all.equal(aphim, sqrt(sum((hmm$assoc.hmskew$phi)^2))))
+stopifnot(all.equal(aphiu, sqrt(sum(abs(hmu$assoc.hmskew$phi)^2))))
+stopifnot(all.equal(aphin, sqrt(sum(abs(hmn$assoc.hmskew$phi)^2))))
+
+stopifnot(all.equal(phim, sqrt(sum(cphim))))
+stopifnot(all.equal(phiu, sqrt(sum(cphiu))))
+stopifnot(all.equal(phin, sqrt(sum(cphin))))
+
+stopifnot(all.equal(maorm, exp(sqrt(sum(cmaorm)))))
+stopifnot(all.equal(maoru, exp(sqrt(sum(cmaoru)))))
+stopifnot(all.equal(maorn, exp(sqrt(sum(cmaorn)))))
 
 
 # Test for phi computed from UNIDIFF two-way interaction coefficients
@@ -27,43 +267,41 @@ tab <- aperm(yaish[,,-7], 3:1)
 # rp <- prop.table(margin.table(tab, 1))
 # cp <- prop.table(margin.table(tab, 2))
 # stopifnot(all.equal(u1m$unidiff$phi,
-#                     maor(fitted(u1m)[,,1], TRUE, "marginal", norm=1, rp, cp)))
+#                     maor(fitted(u1m)[,,1], TRUE, weighting="marginal", norm=1, rp, cp)))
 # stopifnot(all.equal(u1m$unidiff$phi,
-#                     maor(fitted(u1m)[,,1], TRUE, "marginal", norm=1, rp, cp)))
+#                     maor(fitted(u1m)[,,1], TRUE, weighting="marginal", norm=1, rp, cp)))
 # 
 # u1u <- unidiff(tab, weighting="uniform", norm=1)
 # stopifnot(all.equal(u1u$unidiff$phi,
-#                     maor(fitted(u1u)[,,1], TRUE, "uniform", norm=1)))
+#                     maor(fitted(u1u)[,,1], TRUE, weighting="uniform", norm=1)))
 # stopifnot(all.equal(u1u$unidiff$phi * exp(u1u$unidiff$layer$qvframe$estimate[2]),
-#                     maor(fitted(u1u)[,,2], TRUE, "uniform", norm=1)))
+#                     maor(fitted(u1u)[,,2], TRUE, weighting="uniform", norm=1)))
 # 
 # u1n <- unidiff(tab, weighting="none", norm=1)
 # stopifnot(all.equal(u1n$unidiff$phi,
-#                     maor(fitted(u1n)[,,1], TRUE, "none", norm=1)))
+#                     maor(fitted(u1n)[,,1], TRUE, weighting="none", norm=1)))
 # stopifnot(all.equal(u1n$unidiff$phi * exp(u1u$unidiff$layer$qvframe$estimate[2]),
-#                     maor(fitted(u1n)[,,2], TRUE, "none", norm=1)))
+#                     maor(fitted(u1n)[,,2], TRUE, weighting="none", norm=1)))
 
 
 # 2-norm
 u2m <- unidiff(tab, weighting="marginal", norm=2)
-rp <- prop.table(margin.table(tab, 1))
-cp <- prop.table(margin.table(tab, 2))
 stopifnot(all.equal(u2m$unidiff$phi,
-                    maor(fitted(u2m)[,,1], TRUE, "marginal", norm=2, rp, cp)))
+                    maor(fitted(u2m), TRUE, norm=2)[1], weighting="marginal", check.attributes=FALSE))
 stopifnot(all.equal(u2m$unidiff$phi * exp(u2m$unidiff$layer$qvframe$estimate[2]),
-                    maor(fitted(u2m)[,,2], TRUE, "marginal", norm=2, rp, cp)))
+                    maor(fitted(u2m), TRUE, norm=2)[2], weighting="marginal", check.attributes=FALSE))
 
 u2u <- unidiff(tab, weighting="uniform", norm=2)
 stopifnot(all.equal(u2u$unidiff$phi,
-                    maor(fitted(u2u)[,,1], TRUE, "uniform", norm=2)))
+                    maor(fitted(u2u), TRUE, weighting="uniform", norm=2)[1], check.attributes=FALSE))
 stopifnot(all.equal(u2u$unidiff$phi * exp(u2u$unidiff$layer$qvframe$estimate[2]),
-                    maor(fitted(u2u)[,,2], TRUE, "uniform", norm=2)))
+                    maor(fitted(u2u), TRUE, weighting="uniform", norm=2)[2], check.attributes=FALSE))
 
 u2n <- unidiff(tab, weighting="none", norm=2)
 stopifnot(all.equal(u2n$unidiff$phi,
-                    maor(fitted(u2n)[,,1], TRUE, "none", norm=2)))
+                    maor(fitted(u2n), TRUE, weighting="none", norm=2)[1], check.attributes=FALSE))
 stopifnot(all.equal(u2n$unidiff$phi * exp(u2n$unidiff$layer$qvframe$estimate[2]),
-                    maor(fitted(u2n)[,,2], TRUE, "none", norm=2)))
+                    maor(fitted(u2n), TRUE, weighting="none", norm=2)[2], check.attributes=FALSE))
 
 stopifnot(all.equal(maor(yaish),
                     apply(yaish, 3, maor,
@@ -144,7 +382,7 @@ res <- replicate(10, {
     rp <- rep(1, nr)
     cp <- rep(1, nc)
     c(maor(tab, weighting="none", norm=norm),
-      exp((sum(abs(log(or(tab)))^norm, na.rm=TRUE)/((nr-1) * (nc-1)))^(1/norm)))
+      exp(sum(abs(log(or(tab)))^norm, na.rm=TRUE)^(1/norm)))
 })
 
 stopifnot(all.equal(res[1,], res[2,]))

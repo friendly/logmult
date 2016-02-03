@@ -1,3 +1,9 @@
+asGnm.unidiff <- asGnm.assocmod <- function(object, ...) {
+    object$call <- object$call.gnm
+    class(object) <- c("gnm", "glm", "lm")
+    object
+}
+
 printModelHeading <- function(x, digits=max(3, getOption("digits") - 4)) {
   cat("Call:\n", deparse(x$call), "\n", sep="", fill=TRUE)
 
@@ -21,7 +27,7 @@ printModelStats <- function(x, digits=max(3, getOption("digits") - 4)) {
 }
 
 get.probs.asymm <- function(weighting, weights, indices) {
-  # Weight with marginal frequencies, cf. Becker & Clogg (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
+  # Weight with marginal frequencies, cf. Clogg & Shihadeh (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
   if(weighting == "marginal")
       prop.table(rowSums(weights[indices,, drop=FALSE]))
   else if(weighting == "uniform")
@@ -31,7 +37,7 @@ get.probs.asymm <- function(weighting, weights, indices) {
 }
 
 get.probs.symm <- function(weighting, row.weights, col.weights, indices) {
-  # Weight with marginal frequencies, cf. Becker & Clogg (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
+  # Weight with marginal frequencies, cf. Clogg & Shihadeh (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
   if(weighting == "marginal")
       prop.table(rowSums(row.weights[indices,, drop=FALSE]) + rowSums(col.weights[indices,, drop=FALSE]))
   else if(weighting == "uniform")

@@ -117,6 +117,7 @@ hmskew <- function(tab, nd.symm=NA, diagonal=FALSE,
 
   model$assoc.hmskew <- assoc.hmskew(model, weighting=weighting, rowsup=rowsup, colsup=colsup)
 
+  model$call.gnm <- model$call
   model$call <- match.call()
 
 
@@ -176,7 +177,7 @@ assoc.hmskew <- function(model, weighting=c("marginal", "uniform", "none"),
   tab <- prepareTable(model$data, TRUE)
   vars <- names(dimnames(tab))
 
-  # Weight with marginal frequencies, cf. Becker & Clogg (1994), p. 83-84, et Becker & Clogg (1989), p. 144.
+  # Weight with marginal frequencies, cf. Clogg & Shihadeh (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
   weighting <- match.arg(weighting)
   if(weighting == "marginal")
       p <- prop.table(apply(tab, 1, sum, na.rm=TRUE) + apply(tab, 2, sum, na.rm=TRUE))
@@ -265,7 +266,8 @@ assoc.hmskew <- function(model, weighting=c("marginal", "uniform", "none"),
   }
 
   obj <- list(phi = phi, row = sc, col = sc, diagonal = dg,
-              weighting = weighting, row.weights = row.weights, col.weights = col.weights)
+              weighting = weighting, row.weights = row.weights, col.weights = col.weights,
+              vars = vars)
 
   ## Supplementary rows/columns
   if(!is.null(rowsup) || !is.null(colsup)) {

@@ -128,6 +128,7 @@ rcL <- function(tab, nd=1, layer.effect=c("homogeneous.scores", "heterogeneous",
   newclasses <- if(symmetric) c("rcL.symm", "rcL", "assocmod") else c("rcL", "assocmod")
   class(model) <- c(newclasses, class(model))
 
+  model$call.gnm <- model$call
   model$call <- match.call()
 
   if(layer.effect == "none") {
@@ -148,6 +149,7 @@ rcL <- function(tab, nd=1, layer.effect=c("homogeneous.scores", "heterogeneous",
   class(model$assoc) <- if(symmetric) c("assoc.rcL", "assoc.symm", "assoc")
                         else c("assoc.rcL", "assoc")
 
+  model$call.gnm <- model$call
   model$call <- match.call()
 
 
@@ -184,7 +186,7 @@ assoc.rcL <- function(model, weighting=c("marginal", "uniform", "none"), ...) {
   nc <- ncol(tab)
   nl <- dim(tab)[3]
 
-  # Weight with marginal frequencies, cf. Becker & Clogg (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
+  # Weight with marginal frequencies, cf. Clogg & Shihadeh (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
   weighting <- match.arg(weighting)
   if(weighting == "marginal") {
       rp <- prop.table(apply(tab, 1, sum, na.rm=TRUE))
@@ -398,7 +400,8 @@ assoc.rcL <- function(model, weighting=c("marginal", "uniform", "none"), ...) {
   col.weights <- apply(tab, c(2, 3), sum, na.rm=TRUE)
 
   obj <- list(phi = layer, row = row, col = col, diagonal = dg,
-              weighting = weighting, row.weights = row.weights, col.weights = col.weights)
+              weighting = weighting, row.weights = row.weights, col.weights = col.weights,
+              vars = vars)
 
   class(obj) <- c("assoc.rcL", "assoc")
   obj
@@ -415,7 +418,7 @@ assoc.rcL.symm <- function(model, weighting=c("marginal", "uniform", "none"), ..
   nc <- ncol(tab)
   nl <- dim(tab)[3]
 
-  # Weight with marginal frequencies, cf. Becker & Clogg (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
+  # Weight with marginal frequencies, cf. Clogg & Shihadeh (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
   weighting <- match.arg(weighting)
   if(weighting == "marginal")
       p <- prop.table(apply(tab, 1, sum, na.rm=TRUE) + apply(tab, 2, sum, na.rm=TRUE))
@@ -575,7 +578,8 @@ assoc.rcL.symm <- function(model, weighting=c("marginal", "uniform", "none"), ..
   col.weights <- apply(tab, c(2, 3), sum, na.rm=TRUE)
 
   obj <- list(phi = layer, row = sc, col = sc, diagonal = dg,
-              weighting = weighting, row.weights = row.weights, col.weights = col.weights)
+              weighting = weighting, row.weights = row.weights, col.weights = col.weights,
+              vars = vars)
 
   class(obj) <- c("assoc.rcL", "assoc.symm", "assoc")
   obj

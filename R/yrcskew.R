@@ -82,14 +82,10 @@ yrcskew <- function(tab, nd.symm=NA, nd.skew=1, diagonal=FALSE,
       cat("Running real model...\n")
   }
 
-  # We integrate computations in the formula rather than doing them separately
-  # because gnm() does not seem to allow using objects outside of the data argument
-  # in formulas called from functions. This seems to be a problem with how the formula's
-  # environment is handled, and also happens when calling gnm() directly without eval().
-  f <- sprintf("%s + instances(YRCSkew(%s, %s, ifelse(as.numeric(%s) < as.numeric(%s), 1, 0), ifelse(as.numeric(%s) > as.numeric(%s), 1, 0)), %s)",
-                                       basef,
-                                       vars[1], vars[2],
-                                       vars[1], vars[2], vars[1], vars[2], nd.skew)
+  f <- sprintf("%s + instances(YRCSkew(%s, %s, factor(ifelse(as.numeric(%s) < as.numeric(%s), 1, 0)), factor(ifelse(as.numeric(%s) > as.numeric(%s), 1, 0))), %s)",
+               basef,
+               vars[1], vars[2],
+               vars[1], vars[2], vars[1], vars[2], nd.skew)
 
   args <- list(formula=eval(as.formula(f)), data=tab,
                constrain="YRCSkew\\(.*\\)0$",
@@ -103,6 +99,7 @@ yrcskew <- function(tab, nd.symm=NA, nd.skew=1, diagonal=FALSE,
 
   class(model) <- c("yrcskew", "rc.symm", "rc", "assocmod", class(model))
 
+  model$call.gnm <- model$call
   model$call <- match.call()
 
   if(!is.na(nd.symm))
@@ -169,7 +166,7 @@ assoc.yrcskew <- function(model, weighting=c("marginal", "uniform", "none"), ...
   tab <- prepareTable(model$data, TRUE)
   vars <- names(dimnames(tab))
 
-  # Weight with marginal frequencies, cf. Becker & Clogg (1994), p. 83-84, et Becker & Clogg (1989), p. 144.
+  # Weight with marginal frequencies, cf. Clogg & Shihadeh (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
   weighting <- match.arg(weighting)
   if(weighting == "marginal")
       p <- prop.table(apply(tab, 1, sum, na.rm=TRUE) + apply(tab, 2, sum, na.rm=TRUE))
@@ -260,7 +257,8 @@ assoc.yrcskew <- function(model, weighting=c("marginal", "uniform", "none"), ...
   col.weights <- as.matrix(apply(tab, 2, sum, na.rm=TRUE))
 
   obj <- list(phi = phisk, row = sc, col = sc,  diagonal = dg,
-              weighting = weighting, row.weights = row.weights, col.weights = col.weights)
+              weighting = weighting, row.weights = row.weights, col.weights = col.weights,
+              vars = vars)
 
   class(obj) <- c("assoc.yrcskew", "assoc.symm", "assoc")
   obj
@@ -276,7 +274,7 @@ assoc.yrcskew <- function(model, weighting=c("marginal", "uniform", "none"), ...
 # 
 #   weighting <- match.arg(weighting)
 # 
-#   # Weight with marginal frequencies, cf. Becker & Clogg (1994), p. 83-84, et Becker & Clogg (1989), p. 144.
+#   # Weight with marginal frequencies, cf. Clogg & Shihadeh (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
 #   if(weighting == "marginal")
 #       p <- prop.table(apply(tab, 1, sum, na.rm=TRUE) + apply(tab, 2, sum, na.rm=TRUE))
 #   else
@@ -413,7 +411,8 @@ assoc.yrcskew <- function(model, weighting=c("marginal", "uniform", "none"), ...
 #   col.weights <- apply(tab, 2, sum, na.rm=TRUE)
 #
 #   obj <- list(phi = phi, row = sc, col = sc, phisk = phi, rowsk = scsk, colsk = scsk,
-#               diagonal = dg, weighting = weighting, row.weights = row.weights, col.weights = col.weights)
+#               diagonal = dg, weighting = weighting, row.weights = row.weights, col.weights = col.weights,
+#               vars = vars)
 # 
 #   class(obj) <- c("assoc.yrcskew.homog", "assoc.symm", "assoc")
 #   obj

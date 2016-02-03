@@ -1,7 +1,8 @@
 ## Skew-symmetric association model with layer effect (extension of van der Heijden & Mooijaart, 1995)
 
 hmskewL <- function(tab, nd.symm=NA, layer.effect.skew=c("homogeneous.scores", "heterogeneous", "none"),
-                    layer.effect.symm=c("heterogeneous", "uniform", "homogeneous.scores", "none"),
+                    layer.effect.symm=c("heterogeneous", "uniform", "regression.type",
+                                        "homogeneous.scores", "none"),
                     diagonal=c("none", "heterogeneous", "homogeneous"),
                     weighting=c("marginal", "uniform", "none"), se=c("none", "jackknife", "bootstrap"),
                     nreplicates=100, ncpus=getOption("boot.ncpus"),
@@ -36,6 +37,8 @@ hmskewL <- function(tab, nd.symm=NA, layer.effect.skew=c("homogeneous.scores", "
       stop("layer.effect.symm == \"homogeneous.scores\" is only valid when nd.symm is not NA")
   else if(!is.na(nd.symm) && layer.effect.symm == "uniform")
       stop("layer.effect.symm == \"uniform\" is only valid when nd.symm is NA")
+  else if(!is.na(nd.symm) && layer.effect.symm == "regression.type")
+      stop("layer.effect.symm == \"regression.type\" is only valid when nd.symm is NA")
 
   if(length(dim(tab)) > 3)
       tab <- margin.table(tab, 1:3)
@@ -62,14 +65,17 @@ hmskewL <- function(tab, nd.symm=NA, layer.effect.skew=c("homogeneous.scores", "
           f1.symm <- sprintf("+ %s:Symm(%s, %s)",
                              vars[3], vars[1], vars[2])
       else if(layer.effect.symm == "uniform")
-          f1.symm <- sprintf("+ Mult(Exp(%s), Symm(%s, %s))", 
+          f1.symm <- sprintf("+ Mult(Exp(%s), Symm(%s, %s))",
                              vars[3], vars[1], vars[2])
+      else if(layer.effect.symm == "regression.type")
+          f1.symm <- sprintf("+ Symm(%s, %s) + Mult(%s, Symm(%s, %s))",
+                             vars[1], vars[2], vars[3], vars[1], vars[2])
       else
           f1.symm <- sprintf("+ Symm(%s, %s)", 
                              vars[1], vars[2])
   }
   else if(!is.na(nd.symm) && nd.symm > 0) {
-      if(layer.effect.symm == "uniform") {
+      if(layer.effect.symm %in% c("uniform", "regression.type")) {
           # Handled at the top of the function
           stop()
       }
@@ -99,7 +105,7 @@ hmskewL <- function(tab, nd.symm=NA, layer.effect.skew=c("homogeneous.scores", "
 
   nastart <- length(start) == 1 && is.na(start)
 
-  if(is.na(nd.symm))
+  if(layer.effect.symm %in% c("heterogeneous", "regression.type"))
       eliminate <- eval(parse(text=sprintf("quote(Symm(%s, %s))", vars[1], vars[2])))
   else
       eliminate <- eval(parse(text=sprintf("quote(%s:%s)", vars[1], vars[3])))
@@ -158,6 +164,7 @@ hmskewL <- function(tab, nd.symm=NA, layer.effect.skew=c("homogeneous.scores", "
 
   class(model) <- c("hmskewL", "assocmod", class(model))
 
+  model$call.gnm <- model$call
   model$call <- match.call()
 
   if(is.na(nd.symm) || nd.symm == 0) {
@@ -253,7 +260,7 @@ assoc.hmskewL <- function(model, weighting=c("marginal", "uniform", "none"), ...
   nc <- ncol(tab)
   nl <- dim(tab)[3]
 
-  # Weight with marginal frequencies, cf. Becker & Clogg (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
+  # Weight with marginal frequencies, cf. Clogg & Shihadeh (1994), p. 83-84, and Becker & Clogg (1989), p. 144.
   weighting <- match.arg(weighting)
   if(weighting == "marginal")
       p <- prop.table(apply(tab, 1, sum, na.rm=TRUE) + apply(tab, 2, sum, na.rm=TRUE))
@@ -394,7 +401,8 @@ assoc.hmskewL <- function(model, weighting=c("marginal", "uniform", "none"), ...
   col.weights <- apply(tab, c(2, 3), sum, na.rm=TRUE)
 
   obj <- list(phi = layer, row = sc, col = sc, diagonal = dg,
-              weighting = weighting, row.weights = row.weights, col.weights = col.weights)
+              weighting = weighting, row.weights = row.weights, col.weights = col.weights,
+              vars = vars)
 
   class(obj) <- c("assoc.hmskewL", "assoc.symm", "assoc")
   obj

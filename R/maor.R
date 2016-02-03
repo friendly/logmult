@@ -6,10 +6,12 @@ lambda <- function(tab, rp=rep(1/nrow(tab), nrow(tab)), cp=rep(1/ncol(tab), ncol
   lambda + sum(logp * rp %o% cp)
 }
 
-maor <- function(tab, phi=FALSE,
+maor <- function(tab, phi=FALSE, cell=FALSE,
                  weighting=c("marginal", "uniform", "none"), norm=2,
+                 component=c("total", "symmetric", "antisymmetric"),
                  row.weights=NULL, col.weights=NULL) {
   weighting <- match.arg(weighting)
+  component <- match.arg(component)
 
   if(!length(dim(tab)) %in% 2:3) {
       stop("Only two- and three-way tables are supported.")
@@ -46,11 +48,14 @@ maor <- function(tab, phi=FALSE,
 
       if(weighting == "marginal")
           return(apply(tab, 3, maor,
-                       phi=phi, norm=norm,
+                       phi=phi, cell=cell, norm=norm,
+                       component=component,
                        row.weights=rp, col.weights=cp))
       else
           return(apply(tab, 3, maor,
-                       phi=phi, weighting=weighting, norm=norm,
+                       phi=phi, cell=cell,
+                       weighting=weighting, norm=norm,
+                       component=component,
                        row.weights=row.weights, col.weights=col.weights))
   }
 
@@ -87,13 +92,39 @@ maor <- function(tab, phi=FALSE,
   if(!is.null(col.weights))
       cp <- prop.table(col.weights)
 
+  if(component %in% c("symmetric", "antisymmetric"))
+      rp <- cp <- (rp + cp)/2
+
   rp1 <- prop.table(rp)
   cp1 <- prop.table(cp)
 
-  phi.norm <- sum(abs(lambda(tab, rp1, cp1))^norm * rp %o% cp)
+  l <- lambda(tab, rp1, cp1)
 
-  if(phi)
-      phi.norm^(1/norm)
-  else
-      exp((4/sum((rp1 * (1 - rp1)) %o% (cp1 * (1 - cp1))) * phi.norm)^(1/norm))
+  if(component == "symmetric")
+      l <- (l + t(l))/2
+  else if(component == "antisymmetric")
+      l <- (l - t(l))/2
+
+  lambda.norm <- abs(l^norm * rp %o% cp)
+
+  if(phi) {
+      if(cell)
+          lambda.norm
+      else
+          sum(lambda.norm)^(1/norm)
+  }
+  else {
+      if(weighting == "none") {
+          if(cell)
+              4 * nrow(tab) * ncol(tab) * lambda.norm
+          else
+              exp((4 * nrow(tab) * ncol(tab) * sum(lambda.norm))^(1/norm))
+      }
+      else {
+          if(cell)
+              4/sum((rp1 * (1 - rp1)) %o% (cp1 * (1 - cp1))) * lambda.norm
+          else
+              exp((4/sum((rp1 * (1 - rp1)) %o% (cp1 * (1 - cp1))) * sum(lambda.norm))^(1/norm))
+      }
+  }
 }
