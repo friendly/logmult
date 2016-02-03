@@ -474,17 +474,20 @@ plot.assoc <- function(x, dim=c(1, 2), layer=1, what=c("both", "rows", "columns"
   # 1D plot
   if(ncol(sc) == 1) {
       # dotchart() fails when the 'groups' argument has only one level, so work around it
-      if(what == "rows") {
+    if(missing(xlab))
+      xlab <- "Category score"
+
+    if(what == "rows") {
           colnames(sc) <- "Rows"
-          dotchart(sc, pch=pch, main=main, xlim=xlim, asp=asp, color=col)
+          dotchart(sc, pch=pch, main=main, xlim=xlim, asp=asp, color=col, xlab=xlab)
       }
       if(what == "columns") {
           colnames(sc) <- "Columns"
-          dotchart(sc, pch=pch, main=main, xlim=xlim, asp=asp, color=col)
+          dotchart(sc, pch=pch, main=main, xlim=xlim, asp=asp, color=col, xlab=xlab)
       }
       else if(what == "both") {
           dotchart(sc, groups=factor(c(rep("Rows", nwr), rep("Columns", nwc))),
-                   pch=pch, main=main, xlim=xlim, asp=asp, color=col)
+                   pch=pch, main=main, xlim=xlim, asp=asp, color=col, xlab=xlab)
       }
 
       if(!is.na(conf.ellipses)) {
@@ -502,9 +505,9 @@ plot.assoc <- function(x, dim=c(1, 2), layer=1, what=c("both", "rows", "columns"
           if(what %in% c("rows", "both")) {
               for(i in 1:nwr) {
                   se <- sqrt(covmat[start + which[[1]][i], start + which[[1]][i]])
-                  segments(max(sc[i, dim] - q * se, par("usr")[1]), i,
+                  arrows(max(sc[i, dim] - q * se, par("usr")[1]), i,
                            min(sc[i, dim] + q * se, par("usr")[2]), i,
-                           col=col.ellipses[i], lty="dashed", lwd=2)
+                           col=col.ellipses[i], lty="solid", lwd=1.5, angle=90, length=0.05, code=3)
               }
 
               line <- i + 2
@@ -513,9 +516,9 @@ plot.assoc <- function(x, dim=c(1, 2), layer=1, what=c("both", "rows", "columns"
           if(what %in% c("columns", "both")) {
               for(j in 1:nwc) {
                   se <- sqrt(covmat[start + nr + which[[2]][j], start + nr + which[[2]][j]])
-                  segments(max(sc[i + j, dim] - q * se, par("usr")[1]), line + j,
+                  arrows(max(sc[i + j, dim] - q * se, par("usr")[1]), line + j,
                            min(sc[i + j, dim] + q * se, par("usr")[2]), line + j,
-                           col=col.ellipses[i + j], lty="dashed", lwd=2)
+                           col=col.ellipses[i + j], lty="solid", lwd=1.5, angle=90, length=0.05, code=3)
               }
           }
       }
@@ -526,12 +529,12 @@ plot.assoc <- function(x, dim=c(1, 2), layer=1, what=c("both", "rows", "columns"
 
   if(!add && coords == "cartesian") {
       if(missing(xlab))
-          xlab <- sprintf("Dimension %i (%s)",
-                          dim[1], prettyNum(round(x$phi[dim[1]], 2), nsmall=2))
+          xlab <- sprintf("Dimension %i (%s %%)",
+                          dim[1], prettyNum(round(100*x$phi[dim[1]], 2), nsmall=2))
 
       if(missing(ylab))
-          ylab <- sprintf("Dimension %i (%s)",
-                          dim[2], prettyNum(round(x$phi[dim[2]], 2), nsmall=2))
+          ylab <- sprintf("Dimension %i (%s %%)",
+                          dim[2], prettyNum(round(100*x$phi[dim[2]], 2), nsmall=2))
 
       plot(sc[, dim, drop=FALSE], xlim=xlim, ylim=ylim, asp=asp,
            xlab=xlab, ylab=ylab, main=main, type="n", ...)
